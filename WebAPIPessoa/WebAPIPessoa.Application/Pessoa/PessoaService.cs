@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using WebAPIPessoa.Application.Cache;
 using WebAPIPessoa.Repository;
 using WebAPIPessoa.Repository.Models;
 
@@ -10,9 +11,11 @@ namespace WebAPIPessoa.Application.Pessoa
     public class PessoaService
     {
         private readonly PessoaContext _context; // passamento do banco de dados
-        public PessoaService(PessoaContext context) // quem for usar o banco de dados precisa passar o contexto
+        private readonly ICacheService _cacheService;
+        public PessoaService(PessoaContext context, ICacheService cacheService) // quem for usar o banco de dados precisa passar o contexto
         {
             _context = context; // dentro dessa variavel ficam disponiveis as ações do banco de dados
+            _cacheService = cacheService;
         }
 
         public bool RemoverPessoa(int id)
@@ -37,7 +40,18 @@ namespace WebAPIPessoa.Application.Pessoa
 
         public PessoaHistoricoResponse ObterHistoricoPessoa(int id)
         {
+            var chave = $"pessoa_{id}";
+            var cachePessoa = _cacheService.Get<PessoaHistoricoResponse>(chave);
+            if (cachePessoa != null )
+            {
+                return cachePessoa;
+            }
+
             var pessoaDb = _context.Pessoas.FirstOrDefault(x => x.id == id);
+            if (pessoaDb == null)
+                return null;
+
+
             var pessoa = new PessoaHistoricoResponse()
             {
                 Aliquota = Convert.ToDouble(pessoaDb.aliquota),
@@ -55,6 +69,8 @@ namespace WebAPIPessoa.Application.Pessoa
                 SalarioLiquido = Convert.ToDouble(pessoaDb.Saldo),
                 SaldoDolar = pessoaDb.SaldoDolar
             };
+
+            _cacheService.Set(chave, pessoa, 1);
 
             return pessoa;
         }

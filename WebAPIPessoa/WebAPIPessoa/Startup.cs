@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
@@ -18,6 +19,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using WebAPIPessoa.Application.Autenticacao;
+using WebAPIPessoa.Application.Cache;
 using WebAPIPessoa.Application.Eventos;
 using WebAPIPessoa.Repository;
 
@@ -71,12 +73,17 @@ namespace WebAPIPessoa
 
             services.AddAuthorization();
 
+            //INTERFACES
+
             services.AddScoped<IRabbitMQProducer, RabbitMQProducer>();// quando alguem referenciar a interface, ele resolve com a implementação do RabbitMQProducer  
             services.AddScoped<IAutenticacaoService, AutenticacaoService>();
+            services.AddScoped<ICacheService, CacheService>(); // Significa que minha interface vai utilizar a Service
 
             //REFERENCIANDO O BANCO DE DADOS AQUI
 
             services.AddDbContext<PessoaContext>(options => options.UseSqlServer(Configuration.GetConnectionString("ConexaoPessoa")));//Vai ter um contexto(que é uma representação do banco de dados)__o UseSqlServer é o endereço do seu banco de dados__ nesse caso esse endereço vai estar la no appsettings.json na ConexaoPessoa
+
+            services.AddStackExchangeRedisCache(Options => Options.Configuration = Configuration.GetValue<string>("Redis:Connection"));
         }
 
 

@@ -32,11 +32,15 @@ namespace WebAPIPessoa.Application.Autenticacao
                     return false;
                 }
 
+                var caminhoTemplate = $"{System.Environment.CurrentDirectory}.Application/Templates/EsqueciSenhaTemplate.html"; // vai no dominio que eu estou agora(meu caminho base(.Application)), depois va na pasta Templates, e pegue o arquivo
+                var html = System.IO.File.ReadAllText(caminhoTemplate); //usando a biblioteca do system do tipo file, e lendo todo o texto do parametro 
+                var texto = html.Replace("@SENHA", UsuarioExiste.senha); //ele substitui o "@SENHA" pela senha que esta no banco de dados
+
                 var esqueciSenhaModel = new EsqueciSenhaModel()//Se existir esse email, passe o "Email", defina que é uma "recuperação de senha", e passe a senha esquecida
                 {
                     Email = email,
                     Assunto = "Recuperação de senha",
-                    Texto = $"Você solicitou a recuperação de senha. Sua senha é: <b>{UsuarioExiste.senha}</b>" //A melhor forma de concatenar
+                    Texto = texto
                 };
 
                 _rabbitMQProducer.EnviarMensagem(esqueciSenhaModel, "Var.Notificacao.Email", "Var.Notificacao", "Var.Notificacao");//Esse é o nome da fila e da eschange la no rabbit
