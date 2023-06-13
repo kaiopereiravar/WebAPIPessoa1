@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using WebAPIPessoa.Application.Autenticacao;
 using WebAPIPessoa.Application.Cache;
 using WebAPIPessoa.Application.Eventos;
+using WebAPIPessoa.Application.Pessoa;
 using WebAPIPessoa.Repository;
 
 namespace WebAPIPessoa
@@ -75,13 +76,20 @@ namespace WebAPIPessoa
 
             //INTERFACES
 
+            //AddScoped ele reaproveita a mesma instancia dentro da mesma requisição
             services.AddScoped<IRabbitMQProducer, RabbitMQProducer>();// quando alguem referenciar a interface, ele resolve com a implementação do RabbitMQProducer  
             services.AddScoped<IAutenticacaoService, AutenticacaoService>();
-            services.AddScoped<ICacheService, CacheService>(); // Significa que minha interface vai utilizar a Service
+
+            // AddSingleton ele mantem o estado do meu cache, ele não vai ficar criando outros objetos(por estar em memoria nao no rabis)
+            services.AddSingleton<ICacheService, CacheService>(); 
+            services.AddSingleton<IPessoaService, PessoaService>();// Significa que minha interface vai utilizar a Service
 
             //REFERENCIANDO O BANCO DE DADOS AQUI
 
-            services.AddDbContext<PessoaContext>(options => options.UseSqlServer(Configuration.GetConnectionString("ConexaoPessoa")));//Vai ter um contexto(que é uma representação do banco de dados)__o UseSqlServer é o endereço do seu banco de dados__ nesse caso esse endereço vai estar la no appsettings.json na ConexaoPessoa
+            services.AddDbContext<PessoaContext>(options =>
+                {
+                    options.UseSqlServer(Configuration.GetConnectionString("ConexaoPessoa"));//Vai ter um contexto(que é uma representação do banco de dados)__o UseSqlServer é o endereço do seu banco de dados__ nesse caso esse endereço vai estar la no appsettings.json na ConexaoPessoa
+                }, ServiceLifetime.Singleton); //ele precisou transforma para Singleton
 
             services.AddStackExchangeRedisCache(Options => Options.Configuration = Configuration.GetValue<string>("Redis:Connection"));
         }

@@ -19,11 +19,12 @@ namespace WebAPIPessoa.Controllers
     {
         private readonly PessoaContext _context; // passamento do banco de dados
         private readonly ICacheService _cacheService;
-        public PessoaController(PessoaContext context, ICacheService cacheService) // quem for usar o banco de dados precisa passar o contexto
+        private readonly IPessoaService _pessoaService;
+        public PessoaController(PessoaContext context, ICacheService cacheService, IPessoaService pessoaService) // quem for usar o banco de dados precisa passar o contexto
         {
             _context = context; // dentro dessa variavel ficam disponiveis as ações do banco de dados
             _cacheService = cacheService;
-
+            _pessoaService = pessoaService;
         }
 
         /// <summary>
@@ -40,8 +41,7 @@ namespace WebAPIPessoa.Controllers
             var identidade = (ClaimsIdentity)HttpContext.User.Identity; // pegue o usuario que esta autenticado(o usuario do token), e coloque isso dentro da variavel "identidade"
             var usuarioId = identidade.FindFirst("usuarioId").Value; // encontre o usuario ID e guarde na variável // FindFirst = procure o primeiro // esse "usuarioId" pode ser encontrado no site "JWT.IO" quando vc coloca o token gerado do usuario tambem
 
-            var pessoaService = new PessoaService(_context, _cacheService);
-            var pessoaResponse = pessoaService.ProcessarInformacoesPessoa(request, Convert.ToInt32(usuarioId)); // passa para a service e, formato de int(numero)
+            var pessoaResponse = _pessoaService.ProcessarInformacoesPessoa(request, Convert.ToInt32(usuarioId)); // passa para a service e, formato de int(numero)
 
             return pessoaResponse;
         }
@@ -50,8 +50,7 @@ namespace WebAPIPessoa.Controllers
         [Authorize]
         public List<PessoaHistoricoResponse> ObterHistoricoPessoas()
         {
-            var pessoaService = new PessoaService(_context, _cacheService);
-            var pessoas = pessoaService.ObterHistoricoPessoas();
+            var pessoas = _pessoaService.ObterHistoricoPessoas();
 
             return pessoas;
         }
@@ -61,8 +60,7 @@ namespace WebAPIPessoa.Controllers
         [Route("{id}")]
         public PessoaHistoricoResponse ObterHistoricoPessoa([FromRoute]int id)
         {
-            var pessoaService = new PessoaService(_context, _cacheService);
-            var pessoa = pessoaService.ObterHistoricoPessoa(id);
+            var pessoa = _pessoaService.ObterHistoricoPessoa(id);
 
             return pessoa;
         }
@@ -72,8 +70,7 @@ namespace WebAPIPessoa.Controllers
         [Route("{id}")]
         public IActionResult removerPessoa([FromRoute] int id)
         {
-            var pessoaService = new PessoaService(_context, _cacheService);
-            var sucesso = pessoaService.RemoverPessoa(id);
+            var sucesso = _pessoaService.RemoverPessoa(id);
 
             if (sucesso == true) // Se a Service retornar verdadeiro, retorne um 204 (sucesso)
             {

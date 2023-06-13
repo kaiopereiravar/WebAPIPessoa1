@@ -1,9 +1,11 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Text;
+using WebAPIPessoa.Application.Cache;
 using WebAPIPessoa.Application.Eventos;
 using WebAPIPessoa.Application.Eventos.Models;
 using WebAPIPessoa.Repository;
@@ -15,11 +17,13 @@ namespace WebAPIPessoa.Application.Autenticacao
     {
         private readonly PessoaContext _context;//readonly significa que é somente de leitura( ninguem pode alterar o _context)
         private readonly IRabbitMQProducer _rabbitMQProducer; // Referencia da interface
+        private readonly ICacheService _cacheService;
 
-        public AutenticacaoService(PessoaContext context, IRabbitMQProducer rabbitMQProducer)//metodo construtor(ou seja, sempre que alguem instanciar, chamar esse metodo, tem que passar um contexto( que é a referencia ao banco de dados)
+        public AutenticacaoService(PessoaContext context, IRabbitMQProducer rabbitMQProducer, ICacheService cacheService)//metodo construtor(ou seja, sempre que alguem instanciar, chamar esse metodo, tem que passar um contexto( que é a referencia ao banco de dados)
         {
             _context = context;//passando o contexto, ele coloca o contexto dentro da variavel _context
             _rabbitMQProducer = rabbitMQProducer;
+            _cacheService = cacheService;
         }
 
         public bool EsqueciSenha(string email)
@@ -56,6 +60,12 @@ namespace WebAPIPessoa.Application.Autenticacao
 
         public AutenticacaoResponse Autenticar(AutenticacaoRequest request)
         {
+            var chave = $"{request.UserName}{request.Password}";
+            var usuarioCache = _cacheService.Get<AutenticacaoResponse>(chave);
+            if(usuarioCache != null)
+                return usuarioCache;
+            
+
             var usuario = _context.Usuarios.FirstOrDefault(x => x.usuario == request.UserName && x.senha == request.Password);
             if (usuario != null)
             {
@@ -65,6 +75,8 @@ namespace WebAPIPessoa.Application.Autenticacao
                     token = tokenString,
                     UsuarioId = usuario.id
                 };
+
+                _cacheService.Set(chave, resposta, 60);
 
                 return resposta;
             }

@@ -70,7 +70,7 @@ namespace WebAPIPessoa.Application.Pessoa
                 SaldoDolar = pessoaDb.SaldoDolar
             };
 
-            _cacheService.Set(chave, pessoa, 1);
+            _cacheService.Set(chave, pessoa, 60);
 
             return pessoa;
         }
