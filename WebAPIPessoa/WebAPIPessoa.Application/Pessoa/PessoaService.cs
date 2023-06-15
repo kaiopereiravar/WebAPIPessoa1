@@ -8,10 +8,12 @@ using WebAPIPessoa.Repository.Models;
 
 namespace WebAPIPessoa.Application.Pessoa
 {
-    public class PessoaService
+    public class PessoaService : IPessoaService
     {
         private readonly PessoaContext _context; // passamento do banco de dados
         private readonly ICacheService _cacheService;
+        private Dictionary<string, decimal> _cacheCalculoImcMemoriaAplicacao = new Dictionary<string, decimal>();//é como se fosse uma lista com chave e valor 
+
         public PessoaService(PessoaContext context, ICacheService cacheService) // quem for usar o banco de dados precisa passar o contexto
         {
             _context = context; // dentro dessa variavel ficam disponiveis as ações do banco de dados
@@ -41,18 +43,18 @@ namespace WebAPIPessoa.Application.Pessoa
         public PessoaHistoricoResponse ObterHistoricoPessoa(int id)
         {
             var chave = $"pessoa_{id}";
-            var cachePessoa = _cacheService.Get<PessoaHistoricoResponse>(chave);
+            var cachePessoa = _cacheService.Get<PessoaHistoricoResponse>(chave);//ver se tem no cache
             if (cachePessoa != null )
             {
-                return cachePessoa;
+                return cachePessoa;// se nao tiver
             }
 
-            var pessoaDb = _context.Pessoas.FirstOrDefault(x => x.id == id);
+            var pessoaDb = _context.Pessoas.FirstOrDefault(x => x.id == id); //pegue no banco de dados
             if (pessoaDb == null)
-                return null;
+                return null; // se não tiver tambem retorne nulo e acabe a função
 
 
-            var pessoa = new PessoaHistoricoResponse()
+            var pessoa = new PessoaHistoricoResponse() // caso tenha, faça os calculos
             {
                 Aliquota = Convert.ToDouble(pessoaDb.aliquota),
                 altura = pessoaDb.altura,
@@ -70,7 +72,7 @@ namespace WebAPIPessoa.Application.Pessoa
                 SaldoDolar = pessoaDb.SaldoDolar
             };
 
-            _cacheService.Set(chave, pessoa, 60);
+            _cacheService.Set(chave, pessoa, 60); // e sete(insira) no cache o id da pessoa, o nome da pessoa e o tempo que ira durar esse cache
 
             return pessoa;
         }
@@ -182,7 +184,13 @@ namespace WebAPIPessoa.Application.Pessoa
 
         private decimal CalcularImc(decimal peso, decimal altura)
         {
+            var chave = $"{peso}{altura}";
+            if (_cacheCalculoImcMemoriaAplicacao.Any(x => x.Key == chave))
+                return _cacheCalculoImcMemoriaAplicacao.FirstOrDefault(x => x.Key == chave).Value;
+
             var imc = Math.Round(peso / (altura * altura), 2);
+            _cacheCalculoImcMemoriaAplicacao.Add(chave, imc);
+
             return imc;
         }
 
